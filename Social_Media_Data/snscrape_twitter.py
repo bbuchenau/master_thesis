@@ -7,16 +7,19 @@ os.chdir(os.path.dirname(__file__))
 
 # Set parameters.
 query = "#Mali" # until:2020-01-01 since:2010-01-01
-search_limit = 100
-media_limit = 10
+image_folder = "../../snscrape_images/"
+search_limit = 10000
+media_limit = 100
 
 # Create list to append tweet data and initialize ids to track images.
 tweets = []
 id = 0
 
-# Empty images folder
-for f in os.listdir("images/"):
-    os.remove(os.path.join("images/", f))
+# If image folder does not exist, create it, otherwise delete images it contains.
+if not os.path.exists(image_folder):
+    os.makedirs(image_folder)
+for f in os.listdir(image_folder):
+    os.remove(os.path.join(image_folder, f))
 
 # Use TwitterSearchScraper to scrape data and append tweets to list.
 for i, tweet in enumerate(sntwitter.TwitterSearchScraper(query).get_items()): 
@@ -33,10 +36,13 @@ for i, tweet in enumerate(sntwitter.TwitterSearchScraper(query).get_items()):
                 # Download image with get request.
                 r = requests.get(medium.fullUrl)
                 # Save as jpg named according to id and photo no within tweet.
-                with open("images/" + str(id) + "-" + str(j) + ".jpg", "wb") as fp:
+                with open(image_folder + str(id) + "-" + str(j) + ".jpg", "wb") as fp:
                     fp.write(r.content)
         # Increase id             
-        id = id + 1
+        id = id + 1 
+
+    if i % 50 == 0:
+        print("Progress: " + str(len(tweets)) + " / " + str(media_limit) + " tweets with images extracted.")
         
     
 # Create dataframe from tweets list.
