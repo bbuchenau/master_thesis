@@ -3,6 +3,8 @@ import pandas as pd
 import requests
 import os
 
+os.chdir(os.path.dirname(__file__))
+
 # Set parameters.
 query = "#Mali" # until:2020-01-01 since:2010-01-01
 search_limit = 100
