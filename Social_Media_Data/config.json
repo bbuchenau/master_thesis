@@ -1,8 +1,8 @@
 {
-    "hashtag_query" : ["weapon"],
+    "hashtag_query" : ["weapon", "gun"],
     "date_until_query" : "",
     "date_since_query" : "",
-    "geocode_query" : "12.65,-8,1000km", 
-    "search_tweet_limit" : 10000,
+    "geocode_query" : "35,65.89,500km", 
+    "search_tweet_limit" : 100,
     "media_tweet_limit": 10
 }

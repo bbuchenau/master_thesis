@@ -34,7 +34,12 @@ for hashtag in hashtags:
     hashtag_query = "#" + hashtag
     image_folder = "../../snscrape_images/" + hashtag + "/"
     
-    query = hashtag_query + " " + geocode_query
+    # Add geocode only if supplied in config.
+    if len(geocode_query) > 8: 
+        query = hashtag_query + " " + geocode_query
+    else:
+        query = hashtag_query
+
     print("TWITTER QUERY: " + query)
 
     # If image folder does not exist, create it, otherwise delete images it contains.
