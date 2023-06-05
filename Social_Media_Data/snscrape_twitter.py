@@ -36,9 +36,9 @@ for hashtag in hashtags:
     
     # Add geocode only if supplied in config.
     if len(geocode_query) > 8: 
-        query = hashtag_query + " " + geocode_query
+        query = hashtag_query + " " + geocode_query + " " + date_query
     else:
-        query = hashtag_query
+        query = hashtag_query + " " + date_query
 
     print("TWITTER QUERY: " + query)
 
@@ -54,8 +54,7 @@ for hashtag in hashtags:
             break
         # Only extract data if media available.
         if (tweet.media): 
-            tweets.append([hashtag, tweet.date, tweet.user.username, tweet.media])
-
+            tweets.append([hashtag, tweet.date, tweet.user.username, tweet.id, tweet.media])
             # Save media in folder.
             for j, medium in enumerate(tweet.media):
                 # Check if medium is photo and not video (for runtime and storage).
@@ -73,8 +72,8 @@ for hashtag in hashtags:
             print("Extracting " + str(media_tweet_limit) + " tweets with images for given query.")
             
     # Create dataframe from tweets list.
-    colnames = ['Hashtag', 'Datetime', 'Username', 'Media']
+    colnames = ['Hashtag', 'Datetime', 'Username', 'Id', 'Media']
     tweets_df = pd.DataFrame(tweets, columns = colnames)
 
     # Export to csv file.
-    tweets_df.to_csv("../../snscrape_lists/" + hashtag + ".csv", mode = "w")
+    tweets_df.to_csv("../../snscrape_lists/" + hashtag + ".csv", mode = "w", sep = ";")

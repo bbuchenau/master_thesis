@@ -1,3 +1,7 @@
+# This script crawls the IMFDB and downloads the images set in the items list 
+# into a set folder. Base and image URLs can be adjusted for different use cases.
+
+
 from bs4 import *
 import requests
 import os
@@ -7,9 +11,13 @@ import sys
 # Set URL base, image URL base, item list and folder name.
 base_url = "https://www.imfdb.org/wiki/"
 image_base = "https://www.imfdb.org"
+
 # Items might be weapons (tested) or the movies (to be tested)
-items = ["Beretta_92_pistol_series", "CZ_75", "Glock_pistol_series", "Heckler_%26_Koch_USP", "Makarov_PM", "Tokarev_TT-33"]
+items = ["Beretta_92_pistol_series", "CZ_75", "Glock_pistol_series", "Heckler_%26_Koch_USP", "Makarov_PM", "Tokarev_TT-33", "Webley_Revolvers"]
 folder_name = "imfdb_weapons"
+
+# Images with names included in list are skipped.
+skiplist = ["discord", "mediawiki", "logo"]
 
 # Create folder where downloaded images are stored in.
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -76,12 +84,12 @@ for item in items:
                 # Get image content after source URL is found.
                 try:
                     # Handle unneccesary images like logos.
-                    skip_keywords = ["discord", "mediawiki", "logo", "Logo"]
+                    skip_keywords = skiplist
                     skip = False
 
                     # If image link contains skip keyword, image is not saved below.
                     for keyword in skip_keywords:
-                        if keyword in image_link:
+                        if keyword.casefold() in image_link.casefold():
                             skip = True
 
                     # Join image link with URL beginning to get full link.
@@ -129,3 +137,6 @@ for item in items:
     
     # Call main function.
     main(full_url)
+
+
+
