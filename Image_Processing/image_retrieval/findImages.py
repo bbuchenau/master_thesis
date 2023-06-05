@@ -7,17 +7,18 @@ import requests
 import os
 import inspect
 import sys
+import re
 
 # Set URL base, image URL base, item list and folder name.
 base_url = "https://www.imfdb.org/wiki/"
 image_base = "https://www.imfdb.org"
 
 # Items might be weapons (tested) or the movies (to be tested)
-items = ["Beretta_92_pistol_series", "CZ_75", "Glock_pistol_series", "Heckler_%26_Koch_USP", "Makarov_PM", "Tokarev_TT-33", "Webley_Revolvers"]
+items = ["'Burbs,_The", '008:_Operation_Exterminate', '009-1:_The_End_of_the_Beginning']
 folder_name = "imfdb_weapons"
 
 # Images with names included in list are skipped.
-skiplist = ["discord", "mediawiki", "logo"]
+skiplist = ["discord", "mediawiki", "logo", "poster"]
 
 # Create folder where downloaded images are stored in.
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -35,6 +36,10 @@ for item in items:
         try:
             # Create the folder.
             folder_name = item
+
+            # Remove non-alphanumeric characters from name.
+            folder_name = re.sub(r'[^\w\s]', '', folder_name)
+
             folder_path = os.path.join(weapons_folder, folder_name)
             os.mkdir(folder_path)
             print(f"Folder '{folder_name}' created!")
