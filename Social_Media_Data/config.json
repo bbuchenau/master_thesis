@@ -1,8 +1,0 @@
-{
-    "hashtag_query" : ["BVB"],
-    "date_until_query" : "2023-06-02",
-    "date_since_query" : "2023-06-01",
-    "geocode_query" : "50,10,500km", 
-    "search_tweet_limit" : 1000,
-    "media_tweet_limit": 10
-}
