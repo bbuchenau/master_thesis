@@ -16,7 +16,7 @@ search_tweet_limit = config["search_tweet_limit"]
 media_tweet_limit = config["media_tweet_limit"]
 date_query = "until:" + config["date_until_query"] + " since:" + config["date_since_query"]
 geocode_query = "geocode:" + config["geocode_query"]
-hashtags = config["hashtag_query"]
+searchwords = config["search_query"]
 
 # Set folder for extracted list.
 list_folder = "../../snscrape_lists/"
@@ -24,21 +24,20 @@ if not os.path.exists(list_folder):
         os.makedirs(list_folder)
 
 # Loop through hashtags list for image extraction.
-for hashtag in hashtags:
+for search in searchwords:
 
     # (Re)set tweets list storing data and id keeping track of tweet number.
     tweets = []
     id = 0
 
     # Set final query that is passed to sntwitter and storage folder.
-    hashtag_query = "#" + hashtag
-    image_folder = "../../snscrape_images/" + hashtag + "/"
+    image_folder = "../../snscrape_images/" + search + "/"
     
     # Add geocode only if supplied in config.
     if len(geocode_query) > 8: 
-        query = hashtag_query + " " + geocode_query + " " + date_query
+        query = search + " " + geocode_query + " " + date_query
     else:
-        query = hashtag_query + " " + date_query
+        query = search + " " + date_query
 
     print("TWITTER QUERY: " + query)
 
@@ -53,8 +52,9 @@ for hashtag in hashtags:
         if i > search_tweet_limit or len(tweets) > media_tweet_limit:
             break
         # Only extract data if media available.
-        if (tweet.media): 
-            tweets.append([hashtag, tweet.date, tweet.user.username, tweet.id, tweet.media])
+        if (tweet.media):
+            print(tweet.user.location) 
+            tweets.append([search, tweet.date, tweet.user.username, tweet.id, tweet.media])
             # Save media in folder.
             for j, medium in enumerate(tweet.media):
                 # Check if medium is photo and not video (for runtime and storage).
@@ -76,4 +76,4 @@ for hashtag in hashtags:
     tweets_df = pd.DataFrame(tweets, columns = colnames)
 
     # Export to csv file.
-    tweets_df.to_csv("../../snscrape_lists/" + hashtag + ".csv", mode = "w", sep = ";")
+    tweets_df.to_csv("../../snscrape_lists/" + search + ".csv", mode = "w", sep = ";")
