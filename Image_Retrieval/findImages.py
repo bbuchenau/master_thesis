@@ -13,8 +13,15 @@ import re
 base_url = "https://www.imfdb.org/wiki/"
 image_base = "https://www.imfdb.org"
 
-# Items might be weapons (tested) or the movies (to be tested)
-items = ["'Burbs,_The", '008:_Operation_Exterminate', '009-1:_The_End_of_the_Beginning']
+# Items might be weapons or the movies.
+items = []
+
+# Load movie names textfile from extraction process.
+with open("movieNames.txt", "r", encoding="utf-8") as file:
+    for line in file:
+        item = line.strip()
+        items.append(item)
+
 folder_name = "imfdb_weapons"
 
 # Images with names included in list are skipped.
@@ -64,7 +71,8 @@ for item in items:
     
         # Check if images are found.
         if len(images) != 0:
-            for i, image in enumerate(images):
+            # Skip first images, not downloading movie posters. 
+            for i, image in enumerate(images[2:], start = 2):
                 # Fetch image source from image tag.
                 try:
                     # Search for "data-srcset" in tag.
@@ -97,6 +105,11 @@ for item in items:
                         if keyword.casefold() in image_link.casefold():
                             skip = True
 
+                    # Skip images with a width below 50px (all country flags + possible low size images).
+                    image_width = int(image.get("width", "0"))
+                    if image_width < 50:
+                        continue
+
                     # Join image link with URL beginning to get full link.
                     if (skip == False):
                         full_link = image_base + image_link
@@ -111,7 +124,7 @@ for item in items:
                             # Start image download.
                             with open(f"{folder_name}/image{i+1}.jpg", "wb+") as f:
                                 f.write(r)
-        
+                                
                             # Update image count.
                             count += 1
                 except:
