@@ -50,15 +50,13 @@ for item in items:
             folder_path = os.path.join(weapons_folder, folder_name)
             os.mkdir(folder_path)
             print(f"Folder '{folder_name}' created!")
+            # Call function to download the images.
+            download_images(images, folder_path)
     
         # If folder exists, exit.
         except:
             print("Folder name duplicate. Check again.")
-            sys.exit()
-    
-        # Call function to download the images.
-        download_images(images, folder_path)
-    
+            
     
     # Function to download the images.
     def download_images(images, folder_name):
