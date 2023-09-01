@@ -1,0 +1,9 @@
+{
+    "base_url" : "https://www.imfdb.org",
+    "url_extension" : "/wiki/",
+    "url_category" : "Category:Movie",
+    "movie_names_file" : "movieNames.txt",
+    "image_folder" : "imfdb_weapons",
+    "skiplist" : ["discord", "mediawiki", "logo", "poster"],
+    "width_threshold": 50
+}
