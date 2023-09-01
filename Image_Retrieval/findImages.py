@@ -25,11 +25,11 @@ with open("movieNames.txt", "r", encoding="utf-8") as file:
 folder_name = "imfdb_weapons"
 
 # Images with names included in list are skipped.
-skiplist = ["discord", "mediawiki", "logo", "poster"]
+skiplist = ["discord", "mediawiki", "logo", "poster", "spoilers"]
 
 # Create folder where downloaded images are stored in.
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-weapons_folder = os.path.join(current_dir, f"{folder_name}")
+weapons_folder = os.path.join(os.path.dirname(os.path.dirname(current_dir)), f"{folder_name}")
 os.makedirs(weapons_folder, exist_ok=True)
 
 # Iterate through weapons list.
@@ -50,15 +50,13 @@ for item in items:
             folder_path = os.path.join(weapons_folder, folder_name)
             os.mkdir(folder_path)
             print(f"Folder '{folder_name}' created!")
+            # Call function to download the images.
+            download_images(images, folder_path)
     
         # If folder exists, exit.
         except:
             print("Folder name duplicate. Check again.")
-            sys.exit()
-    
-        # Call function to download the images.
-        download_images(images, folder_path)
-    
+            
     
     # Function to download the images.
     def download_images(images, folder_name):
@@ -117,7 +115,7 @@ for item in items:
                         #print(image_link)
                         r = requests.get(full_link).content
                         try:
-                            # Decoding - what exactly does this do? Check again!
+                            # Decoding to UTF-8.
                             r = str(r, 'utf-8')
         
                         except UnicodeDecodeError:
@@ -148,8 +146,9 @@ for item in items:
         soup = BeautifulSoup(r.text, 'html.parser')
     
         # Find all images.
+        # TODO: Find out how to filter images by width/height attribute.
         images = soup.findAll('img')
-    
+
         # Call folder create function
         folder_create(images)
     

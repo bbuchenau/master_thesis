@@ -1,8 +1,8 @@
 from ultralytics import YOLO
 
 #TRAIN
-model = YOLO('yolov8l-cls.pt')  # load a pretrained model (recommended for training)
-model.train(data="D:\\ben_masterthesis\master_thesis\Image_Processing\gun_classification", epochs = 25)
+model = YOLO('yolov8x-cls.pt')  # load a pretrained model (recommended for training)
+model.train(data="D:\\ben_masterthesis\classification_images\gun_classification", epochs = 180)
 
 #TEST
 #model = YOLO("D:\\ben_masterthesis\master_thesis\\runs\classify\\train3\weights\\best.pt")
