@@ -94,14 +94,14 @@ def download_images(images, name):
                     full_link = base_url + image_link
                     # Print if needed for debugging.
                     #print(full_link)
-                    r = requests.get(full_link).content
+                    response = requests.get(full_link).content
                     try:
-                        r = str(r, 'utf-8')
+                        response = str(response, 'utf-8')
     
                     except UnicodeDecodeError:
                         # Start image download.
-                        with open(f"{folder_path}/image{i+1}.jpg", "wb+") as f:
-                            f.write(r)
+                        with open(f"{folder_path}/image{i+1}.jpg", "wb+") as file:
+                            file.write(response)
                             
                         # Update image count.
                         count += 1
