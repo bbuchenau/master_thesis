@@ -2,12 +2,16 @@ import requests
 import re
 from bs4 import BeautifulSoup
 
+
+
+
 # Function to extract data from the current page
 def extract_data(url):
     # Send a GET request to the current page
     response = requests.get(url)
 
-    # Parse the HTML content using BeautifulSoup
+    # Parse the HTML content using BeautifulSoup.
+    # Creating soup initializes the extraction process.
     soup = BeautifulSoup(response.content, "html.parser")
 
     # Find the <div> with class "mw-category"
@@ -38,6 +42,7 @@ while True:
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
     next_page_elem = soup.find("a", string="next page")
+    # This part only executes if next page is present.
     if next_page_elem:
         next_page_link = next_page_elem.get("href")
         # Update the URL for the next iteration
@@ -46,6 +51,7 @@ while True:
         current_data = extract_data(url)
         # Append the current page data to the list
         all_data.extend(current_data)
+    # Break if crawler arrived at last page. 
     else:
         break
 
