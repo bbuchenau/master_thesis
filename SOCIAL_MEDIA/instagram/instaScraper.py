@@ -3,6 +3,7 @@ from datetime import datetime
 import inspect
 import requests
 import json
+import time
 import os
 
 # Main snscrape version not working for Instagram recently, GitHub
@@ -70,7 +71,6 @@ def download_media(path, urls, metadata):
 # --------------------- EXTRACTION OF INSTAGRAM IMAGES AND VIDEOS ----------------------
 
 
-
 # Set script path as current dir and load location dictionary.
 current_directory = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 dictionary_filepath = os.path.join(current_directory, "location_dictionary.json")
@@ -82,28 +82,36 @@ locations = location_dictionary.keys()
 names = list(location_dictionary.values())
 
 # FOR TESTING: Set maximum results.
-num_results = 100000
+num_results = 10000
 
 print("Starting the medium extraction process for Instagram posts by geolocation.")
 
-# Iterate through all locations and implement extraction process for posts.
-for i, location in enumerate(locations):
-    image_urls = []
-    image_metadata = []
-    
-    # Start post information download.
-    download_post_information(location, num_results)
+scrape_interval = 60*60*12
+while True:
+      print("Start image download.")
 
-    # Save metadata as textfiles.
-    url_path = os.path.join(current_directory, f"metadata_{names[i]}.txt")
-    save_textfile(image_metadata, url_path)
 
-    # Create folders and download media.
-    images_folder = os.path.join(current_directory, f"{names[i]}")
-    os.makedirs(images_folder, exist_ok = True)
-    download_media(images_folder, image_urls, image_metadata)
+      # Iterate through all locations and implement extraction process for posts.
+      for i, location in enumerate(locations):
+            image_urls = []
+            image_metadata = []
+            
+            # Start post information download.
+            download_post_information(location, num_results)
 
-# Report scraping datetime to logfile.
-now = datetime.now()
-with open(current_directory + "/log.csv", "a", encoding = "utf-8") as file:
-      file.write(str(now.strftime("%d/%m/%Y %H:%M:%S")) + "\n")
+            # Save metadata as textfiles.
+            url_path = os.path.join(current_directory, f"metadata_{names[i]}.txt")
+            save_textfile(image_metadata, url_path)
+
+            # Create folders and download media.
+            images_folder = os.path.join(current_directory, f"{names[i]}")
+            os.makedirs(images_folder, exist_ok = True)
+            download_media(images_folder, image_urls, image_metadata)
+
+            # Report scraping datetime to logfile.
+            now = datetime.now()
+            with open(current_directory + "/log.csv", "a", encoding = "utf-8") as file:
+                  file.write(str(now.strftime("%d/%m/%Y %H:%M:%S")) + "\n")
+
+      print("Sleep for 12 hours.")
+      time.sleep(scrape_interval)
