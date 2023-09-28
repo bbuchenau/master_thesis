@@ -3,10 +3,10 @@ from PIL import Image
 import os
 
 # Import trained model.
-model = YOLO("D:\\ben_masterthesis\\runs\classify\\train\weights\\last.pt")
+model = YOLO("D:\\ben_masterthesis\\runs\classify\\train3\weights\\best.pt")
 
 # Run detection on directory.
-image_directory = "D:\\ben_masterthesis\OIDv4\Classification\\test\\weapon"
+image_directory = "D:\\ben_masterthesis\OIDv4\Classification_binary\\test\\interesting"
 file_list = os.listdir(image_directory)
 
 # Iterate over all images in directory.
@@ -17,4 +17,4 @@ for image in file_list:
     for r in results:
         im_array = r.plot()  
         im = Image.fromarray(im_array[..., ::-1])
-        im.show()
+        #im.show()
