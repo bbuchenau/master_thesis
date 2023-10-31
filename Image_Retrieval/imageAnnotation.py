@@ -2,6 +2,7 @@ import cv2 as cv
 import os
 import keyboard
 from matplotlib import pyplot as plt
+import matplotlib.patheffects as PathEffects
 import tkinter as tk
 from tkinter import filedialog
 
@@ -34,7 +35,7 @@ def toggle_variable_state(key):
         print(gun, rifle, tank)
 
         # Update the text color based on the new state
-        text_color = 'blue' if new_state else 'grey'
+        text_color = 'steelblue' if new_state else 'darkgrey'
 
         # Update the text color on the existing plot
         for annotation in annotations[key]:
@@ -67,10 +68,11 @@ else:
             class_name = key_class_pairs[key]
 
             # Determine the initial text color based on the initial state
-            initial_text_color = 'blue' if globals()[variable_name] else 'grey'
+            initial_text_color = 'steelblue' if globals()[variable_name] else 'darkgrey'
 
             annotation = plt.text(left_offset, y_position, class_name, fontsize=15, style = "oblique",
                                   color=initial_text_color, verticalalignment='center')
+            annotation.set_path_effects([PathEffects.withStroke(linewidth=5, foreground='w')])
             if key not in annotations:
                 annotations[key] = []
             annotations[key].append(annotation)
@@ -79,6 +81,25 @@ else:
         plt.axis('off')  # Turn off axis labels
         plt.autoscale()
         plt.show()
+
+        # After selection, track current variable status and append to list.
+        true_classes = []
+        if gun:
+            true_classes.append("gun")
+        if rifle:
+            true_classes.append("rifle")
+        if tank:
+            true_classes.append("tank")
+
+        print(true_classes)
+
+        # Write class selection to file.
+        with open(os.path.dirname(folder_path) + "/annotation.csv", "a", encoding = "utf-8") as file:
+            file.write(filename + "," + ",".join(true_classes) + "\n")
+
+        # For image-level classification, I can also just copy/paste the files into class folders.
+        
+
 
         # Reset variables
         gun = False
