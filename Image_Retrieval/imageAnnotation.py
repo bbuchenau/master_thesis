@@ -1,5 +1,6 @@
 import cv2 as cv
 import os
+import shutil
 import keyboard
 from matplotlib import pyplot as plt
 import matplotlib.patheffects as PathEffects
@@ -10,29 +11,36 @@ from tkinter import filedialog
 root = tk.Tk()
 root.withdraw()
 folder_path = filedialog.askdirectory(title="Select image source for annotation.")
+annotation_folder = os.path.join(os.path.dirname(folder_path), "annotated")
 
-gun = False
-rifle = False
-tank = False
+weapon = False
+vehicle = False
+soldier = False
+closeup = False
+not_interesting = False
 
 # Define a dictionary to map keys to variables
 key_class_pairs = {
-    "1": "gun",
-    "2": "rifle",
-    "3": "tank"
+    "1": "weapon",
+    "2": "vehicle",
+    "3": "soldier",
+    "0": "not_interesting",
+    "4": "closeup"
 }
 
 annotations = {}
 
+
+
 def toggle_variable_state(key):
-    global gun, rifle, tank
+    global weapon, vehicle, soldier, closeup, not_interesting
     variable_name = key_class_pairs.get(key)
 
     if variable_name:
         current_state = globals()[variable_name]
         new_state = not current_state
         globals()[variable_name] = new_state
-        print(gun, rifle, tank)
+        print(weapon, vehicle, soldier, closeup, not_interesting)
 
         # Update the text color based on the new state
         text_color = 'steelblue' if new_state else 'darkgrey'
@@ -84,27 +92,39 @@ else:
 
         # After selection, track current variable status and append to list.
         true_classes = []
-        if gun:
-            true_classes.append("gun")
-        if rifle:
-            true_classes.append("rifle")
-        if tank:
-            true_classes.append("tank")
+        if weapon:
+            true_classes.append("weapon")
+            shutil.copy(file, os.path.join(annotation_folder, "weapon"))
+        if vehicle:
+            true_classes.append("vehicle")
+            shutil.copy(file, os.path.join(annotation_folder, "vehicle"))
+        if soldier:
+            true_classes.append("soldier")
+            shutil.copy(file, os.path.join(annotation_folder, "soldier"))
+        if closeup:
+            true_classes.append("closeup")
+            shutil.copy(file, os.path.join(annotation_folder, "closeup"))
+        if not_interesting:
+            true_classes.append("not_interesting")
+            shutil.copy(file, os.path.join(annotation_folder, "not_interesting"))
 
-        print(true_classes)
+        shutil.copy(file, os.path.join(annotation_folder, "all"))
+
+        # print(true_classes)
 
         # Write class selection to file.
-        with open(os.path.dirname(folder_path) + "/annotation.csv", "a", encoding = "utf-8") as file:
-            file.write(filename + "," + ",".join(true_classes) + "\n")
-
-        # For image-level classification, I can also just copy/paste the files into class folders.
+        with open(os.path.dirname(folder_path) + "/annotation.csv", "a", encoding = "utf-8") as csv_file:
+            csv_file.write(filename + "," + ",".join(true_classes) + "\n")
+            
+        os.remove(file)
         
 
-
         # Reset variables
-        gun = False
-        rifle = False
-        tank = False
+        weapon = False
+        vehicle = False
+        soldier = False
+        closeup = False
+        not_interesting = False
 
         # Unhook key presses
         for key in key_class_pairs.keys():
