@@ -16,7 +16,7 @@ annotation_folder = os.path.join(os.path.dirname(folder_path), "annotated")
 weapon = False
 vehicle = False
 soldier = False
-closeup = False
+interesting = False
 not_interesting = False
 
 # Define a dictionary to map keys to variables
@@ -25,22 +25,20 @@ key_class_pairs = {
     "2": "vehicle",
     "3": "soldier",
     "0": "not_interesting",
-    "4": "closeup"
+    "4": "interesting"
 }
 
 annotations = {}
 
-
-
 def toggle_variable_state(key):
-    global weapon, vehicle, soldier, closeup, not_interesting
+    global weapon, vehicle, soldier, interesting, not_interesting
     variable_name = key_class_pairs.get(key)
 
     if variable_name:
         current_state = globals()[variable_name]
         new_state = not current_state
         globals()[variable_name] = new_state
-        print(weapon, vehicle, soldier, closeup, not_interesting)
+        print(weapon, vehicle, soldier, interesting, not_interesting)
 
         # Update the text color based on the new state
         text_color = 'steelblue' if new_state else 'darkgrey'
@@ -88,6 +86,13 @@ else:
         plt.imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
         plt.axis('off')  # Turn off axis labels
         plt.autoscale()
+
+        # Get the figure manager
+        manager = plt.get_current_fig_manager()
+
+        # Set the screen position (adjust these values accordingly)
+        manager.window.wm_geometry("+2400+400")  # X and Y screen position
+
         plt.show()
 
         # After selection, track current variable status and append to list.
@@ -101,9 +106,9 @@ else:
         if soldier:
             true_classes.append("soldier")
             shutil.copy(file, os.path.join(annotation_folder, "soldier"))
-        if closeup:
-            true_classes.append("closeup")
-            shutil.copy(file, os.path.join(annotation_folder, "closeup"))
+        if interesting:
+            true_classes.append("interesting")
+            shutil.copy(file, os.path.join(annotation_folder, "interesting"))
         if not_interesting:
             true_classes.append("not_interesting")
             shutil.copy(file, os.path.join(annotation_folder, "not_interesting"))
@@ -123,7 +128,7 @@ else:
         weapon = False
         vehicle = False
         soldier = False
-        closeup = False
+        interesting = False
         not_interesting = False
 
         # Unhook key presses
