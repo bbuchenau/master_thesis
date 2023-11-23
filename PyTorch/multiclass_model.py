@@ -56,8 +56,17 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+# Set working directory.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_dir)
+
 # Create the dataset.
-dataset = MultiLabelImageDataset(root_dir="D:/ben_masterthesis/OIDv4_ToolKit/OID/Dataset_nl/train/TEST", transform=transform)
+# Path for my laptop
+dataset_path = "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
+# Path for BICC PC
+#dataset_path = "D:/ben_masterthesis/OIDv4_ToolKit/OID/Dataset_nl/train/TEST" 
+
+dataset = MultiLabelImageDataset(root_dir=dataset_path, transform=transform)
 
 # Split the dataset into training and validation sets.
 train_size = int(0.8 * len(dataset))
@@ -95,7 +104,7 @@ if __name__ == "__main__":
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training loop
-    num_epochs = 2 # For testing
+    num_epochs = 100 # For testing
     train_losses = []
     val_losses = []
     all_labels = []  # Store all labels from validation set
@@ -154,6 +163,7 @@ if __name__ == "__main__":
     plt.savefig('graphics/val_loss.svg', format='svg')
     plt.show()
     
+    #TODO: Mistake in val loss calculation? Looks like it from the plot. Fix!
     #TODO: How does confusion matrix work for multilabel? Figure out and fix inconsistent input variable error!!
 
     #print(best_predictions)
