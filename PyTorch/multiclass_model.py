@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.models import resnet18
-from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix, f1_score, precision_score, recall_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -62,9 +62,9 @@ os.chdir(current_dir)
 
 # Create the dataset.
 # Path for my laptop
-dataset_path = "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
+#dataset_path = "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
 # Path for BICC PC
-#dataset_path = "D:/ben_masterthesis/OIDv4_ToolKit/OID/Dataset_nl/train/TEST" 
+dataset_path = "D:/ben_masterthesis/OIDv4_ToolKit/OID/Dataset_nl/train/TEST" 
 
 dataset = MultiLabelImageDataset(root_dir=dataset_path, transform=transform)
 
@@ -105,14 +105,22 @@ if __name__ == "__main__":
 
     # Training loop
     num_epochs = 100 # For testing
+
+    # Metrics for evaluation and visualisation.
     train_losses = []
     val_losses = []
-    all_labels = []  # Store all labels from validation set
-    best_predictions = []  # Store best predictions from validation set
-
+    train_f1_scores = []
+    val_f1_scores = []
+    
     for epoch in range(num_epochs):
+
+        all_labels = []  # Store all labels from validation set
+        best_predictions = []  # Store best predictions from validation set
+
         model.train()
-        epoch_losses = []
+        epoch_train_losses = []
+        epoch_train_predictions = []
+        epoch_train_labels = []
 
         for inputs, labels in train_loader:
             optimizer.zero_grad()
@@ -121,36 +129,57 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-            epoch_losses.append(loss.item())
+            epoch_train_losses.append(loss.item())
+
+            predictions = torch.sigmoid(outputs).round().detach().cpu().numpy()
+            epoch_train_predictions.extend(predictions)
+            epoch_train_labels.extend(labels.cpu().numpy())
 
         # Calculate and log average training loss for the epoch
-        average_loss = sum(epoch_losses) / len(epoch_losses)
+        average_loss = sum(epoch_train_losses) / len(epoch_train_losses)
         print(f"Epoch [{epoch+1}/{num_epochs}], Training Loss: {average_loss:.4f}")
         train_losses.append(average_loss)
 
+        # Calculate training F1 score
+        train_precision = precision_score(epoch_train_labels, epoch_train_predictions, average='micro')
+        train_recall = recall_score(epoch_train_labels, epoch_train_predictions, average='micro')
+        train_f1 = 2 * (train_precision * train_recall) / (train_precision + train_recall)
+        train_f1_scores.append(train_f1)
+
         # Validation loop within epoch.
         model.eval()
-        total_val_loss = 0.0
+        epoch_val_losses = []
+        epoch_val_predictions = []
+        epoch_val_labels = []
         current_best_predictions = []
 
         with torch.no_grad():
             for inputs, labels in val_loader:
                 outputs = model(inputs)
                 val_loss = criterion(outputs, labels.float())
-                total_val_loss += val_loss.item()
+                epoch_val_losses.append(val_loss.item())
+
+                predictions = torch.sigmoid(outputs).round().detach().cpu().numpy()
+                epoch_val_predictions.extend(predictions)
+                epoch_val_labels.extend(labels.cpu().numpy())
 
                 # Store labels and predictions for the confusion matrix
                 all_labels.extend(labels.numpy())
                 current_best_predictions.extend(torch.sigmoid(outputs).round().numpy())
 
-        # Update best predictions based on the highest predicted probability for each class
-        if not best_predictions or total_val_loss < min(val_losses):
-            best_predictions = current_best_predictions
-
-        # Calculate and log average validation loss for the epoch
-        average_val_loss = total_val_loss / len(val_loader)
+        average_val_loss = sum(epoch_val_losses) / len(val_loader)
         print(f"Epoch [{epoch+1}/{num_epochs}], Validation Loss: {average_val_loss:.4f}")
         val_losses.append(average_val_loss)
+
+        # Update best predictions based on the highest predicted probability for each class
+        if not best_predictions or val_loss < min(val_losses):
+            best_predictions = current_best_predictions
+
+        # Calculate validation F1 score
+        val_precision = precision_score(epoch_val_labels, epoch_val_predictions, average='micro')
+        val_recall = recall_score(epoch_val_labels, epoch_val_predictions, average='micro')
+        val_f1 = 2 * (val_precision * val_recall) / (val_precision + val_recall)
+        val_f1_scores.append(val_f1)
 
     # Save the trained model
     torch.save(model.state_dict(), "multiclass_test.pth")
@@ -162,23 +191,39 @@ if __name__ == "__main__":
     plt.plot(val_losses, label='Validation Loss')
     plt.savefig('graphics/val_loss.svg', format='svg')
     plt.show()
+
+    # Visualize training and validation f1 curves. 
+    plt.plot(train_f1_scores, label='f1 train')
+    plt.savefig('graphics/train_f1.svg', format='svg')
+    plt.show()
+    plt.plot(val_f1_scores, label='f1 val')
+    plt.savefig('graphics/val_f1.svg', format='svg')
+    plt.show()
     
-    #TODO: Mistake in val loss calculation? Looks like it from the plot. Fix!
     #TODO: How does confusion matrix work for multilabel? Figure out and fix inconsistent input variable error!!
 
-    #print(best_predictions)
-    #print(all_labels)
-
     # Create a confusion matrix based on the best predictions
-    #conf_matrix = multilabel_confusion_matrix(np.array(all_labels), np.array(best_predictions), labels=[0, 1, 2])
-    #class_names = dataset.classes
+    conf_matrix = multilabel_confusion_matrix(np.array(all_labels), np.array(best_predictions), labels=[0, 1, 2])
+    class_names = dataset.classes
+
+    # Normalize the confusion matrices
+    normalized_conf_matrix = [conf_matrix[i] / conf_matrix[i].sum(axis=1, keepdims=True) for i in range(len(class_names))]
+    
 
     # Display the multilabel confusion matrix using seaborn heatmap
-    #plt.figure(figsize=(10, 8))
-    #for i in range(len(class_names)):
-    #    sns.heatmap(conf_matrix[i], annot=True, fmt="d", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
-    #    plt.xlabel("Predicted")
-    #    plt.ylabel("True")
-    #    plt.show()
+    plt.figure(figsize=(10, 8))
+    for i in range(len(class_names)):
+        sns.heatmap(conf_matrix[i], annot=True, fmt="d", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        plt.savefig(f'graphics/conf_matrix_{i+1}.svg', format='svg')
+        plt.show()
+
+        sns.heatmap(normalized_conf_matrix[i], annot=True, fmt=".2f", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        plt.savefig(f'graphics/norm_conf_matrix_{i+1}.svg', format='svg')
+        plt.show()
+    
 
 
