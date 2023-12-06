@@ -16,7 +16,7 @@ def count_unique_colors(image):
     return unique_colors.shape[0]
 
 # Create Tkinter window for folder selection, as this is applied on multiple datasets.
-folder_path = filedialog.askdirectory(title="Select image source for photograph filter.")
+folder_path = filedialog.askdirectory(title="Original data folder.")
 
 # Iterate through files to perform the color analysis.
 for filename in os.listdir(folder_path):
