@@ -1,0 +1,9 @@
+{
+    "epochs" : 3,
+    "train_split" : 0.8,
+    "transform_resize" : [224, 224],
+    "batch_size" : 64,
+    "learning_rate" : 0.001,
+    "data_path_BICC" : "D:/ben_masterthesis/1_OIDv4/OID/Dataset_nl/train/X_TEST_SMALL",
+    "data_path_laptop" : "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
+}

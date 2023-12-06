@@ -1,8 +1,7 @@
 import os
 import torch
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
-
+from torch.utils.data import Dataset
 
 # Function that creates my dataset, customized for local structure.
 class MultiLabelImageDataset(Dataset):

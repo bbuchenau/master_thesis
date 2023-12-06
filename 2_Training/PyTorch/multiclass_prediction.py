@@ -1,41 +1,47 @@
 from PIL import Image
 import os
+import json
 import torch
+import socket
 import numpy as np
 from torch import nn
 from torchvision import transforms
-from torchvision.models import resnet18
 from captum.attr import LayerGradCam
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 
-# Set working directory.
+# Import classes from my other files.
+from model import CNN
+from multiclass_model import model_output_name
+
+# Set working directory and load trainingConfig JSON file that stores parameters.
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
+config_filepath = os.path.join(current_dir, "trainingConfig.json")
+with open(config_filepath, "r") as jsonfile:
+    config = json.load(jsonfile)
 
-# Define the same CNN model like in the training script.
-# TODO: Write to separate file and import to both training and prediction script.
-class CNN(nn.Module):
-    def __init__(self, num_classes):
-        super(CNN, self).__init__()
-        self.base_model = resnet18(pretrained=True)
-        in_features = self.base_model.fc.in_features
-        self.base_model.fc = nn.Linear(in_features, num_classes)
+# Set dataset path. As I am working on different PCs, set path device-dependent.
+pc_name = socket.gethostname()
+if pc_name == "R184W10-CELSIUS":
+    dataset_path = config["data_path_BICC"]
+elif pc_name == "LAPTOP_UBUH5BJN":
+    dataset_path = config["data_path_laptop"]
+else:
+    print("Wrong dataset path, check again.")
 
-    def forward(self, x):
-        return self.base_model(x)
-
-# Load the model
-model = CNN(3)
-model.load_state_dict(torch.load("D:/ben_masterthesis/master_thesis/PyTorch/multiclass_test.pth"))
+# Count number of classes and load the model
+num_classes = len(os.listdir(dataset_path))
+model = CNN(num_classes)
+model.load_state_dict(torch.load(model_output_name))
 model.eval()
 
 # Load and preprocess the image, now just for one to test it.
 # TODO: Iterate over all test images.
-image_path = "D:/ben_masterthesis/master_thesis/PyTorch/testing/tank_2.jpg"
+image_path = "testing/tank_2.jpg"
 image = Image.open(image_path)
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize(list(config["transform_resize"])),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])

@@ -1,79 +1,53 @@
 import os
-from PIL import Image
+import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchvision.models import resnet18
-from sklearn.metrics import multilabel_confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import multilabel_confusion_matrix, precision_score, recall_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import socket
 
-# Function that creates my dataset, customized for local structure.
-class MultiLabelImageDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
-        self.root_dir = root_dir
-        self.transform = transform
-        self.classes = sorted(os.listdir(root_dir))
-        self.class_to_idx = {cls: i for i, cls in enumerate(self.classes)}
-        self.imgs = self._make_dataset()
+# Import classes from my other files.
+import data
+import model
 
-    def _make_dataset(self):
-        images = []
-        for class_name in self.classes:
-            class_path = os.path.join(self.root_dir, class_name)
-            if os.path.isdir(class_path):
-                for img_name in os.listdir(class_path):
-                    img_path = os.path.join(class_path, img_name)
-                    item = (img_path, [self.class_to_idx[class_name]])
-                    images.append(item)
-        return images
+# Set working directory and load trainingConfig JSON file that stores parameters.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_dir)
+config_filepath = os.path.join(current_dir, "trainingConfig.json")
+with open(config_filepath, "r") as jsonfile:
+    config = json.load(jsonfile)
 
-    def __len__(self):
-        return len(self.imgs)
+# Set dataset path. As I am working on different PCs, set path device-dependent.
+pc_name = socket.gethostname()
+if pc_name == "R184W10-CELSIUS":
+    dataset_path = config["data_path_BICC"]
+elif pc_name == "LAPTOP_UBUH5BJN":
+    dataset_path = config["data_path_laptop"]
+else:
+    print("Wrong dataset path, check again.")
 
-    def __getitem__(self, idx):
-        img_path, labels = self.imgs[idx]
-
-        # Read the image
-        image = Image.open(img_path).convert('RGB')
-
-        # Apply transformations
-        if self.transform:
-            image = self.transform(image)
-
-        # Convert labels to a binary vector
-        binary_label = torch.zeros(len(self.classes))
-        binary_label[labels] = 1.0
-
-        return image, binary_label
-
-# Define custom dataset and transformations
+# Define transformations for images in dataset.
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize(list(config["transform_resize"])),
     transforms.ToTensor(),
 ])
 
-# Set working directory.
-current_dir = os.path.dirname(os.path.abspath(__file__))
-os.chdir(current_dir)
+model_output_name = "multiclass_test.pth"
 
 # Create the dataset.
-# Path for my laptop
-#dataset_path = "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
-# Path for BICC PC
-dataset_path = "D:/ben_masterthesis/OIDv4_ToolKit/OID/Dataset_nl/train/X_TEST" 
+dataset = data.MultiLabelImageDataset(root_dir=dataset_path, transform=transform)
 
-dataset = MultiLabelImageDataset(root_dir=dataset_path, transform=transform)
-
-# Split the dataset into training and validation sets.
-train_size = int(0.8 * len(dataset))
+# Split images into training and validation.
+train_size = int(config["train_split"] * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
 
-# Define the custom collate function (Because...?)
+# Define the custom collate function (TODO: Find out how exactly this works!)
 def custom_collate(batch):
     images, labels = zip(*batch)
     return torch.stack(images), torch.stack(labels)
@@ -81,30 +55,19 @@ def custom_collate(batch):
 # Workaround, as there were runtime issues.
 if __name__ == "__main__":
     # Create data loaders with the custom collate function
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, collate_fn=custom_collate)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False, num_workers=4, collate_fn=custom_collate)
-
-    # Define the CNN model. Here, I can modify the network.
-    class CNN(nn.Module):
-        def __init__(self, num_classes):
-            super(CNN, self).__init__()
-            self.base_model = resnet18(pretrained=True)
-            in_features = self.base_model.fc.in_features
-            self.base_model.fc = nn.Linear(in_features, num_classes)
-
-        def forward(self, x):
-            return self.base_model(x)
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=4, collate_fn=custom_collate)
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=4, collate_fn=custom_collate)
 
     # Instantiate the model
     num_classes = len(dataset.classes)
-    model = CNN(num_classes)
+    model = model.CNN(num_classes)
 
     # Define loss function and optimizer: BCE loss function and Adam optimizer is good for multilabel classification problem.
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr = config["learning_rate"])
 
     # Training loop
-    num_epochs = 100 # For testing
+    num_epochs = config["epochs"] # For testing
 
     # Metrics for evaluation and visualisation.
     train_losses = []
@@ -175,30 +138,30 @@ if __name__ == "__main__":
         if not best_predictions or val_loss < min(val_losses):
             best_predictions = current_best_predictions
 
-        # Calculate validation F1 score
+        # Calculate validation f1 score
         val_precision = precision_score(epoch_val_labels, epoch_val_predictions, average='micro')
         val_recall = recall_score(epoch_val_labels, epoch_val_predictions, average='micro')
         val_f1 = 2 * (val_precision * val_recall) / (val_precision + val_recall)
         val_f1_scores.append(val_f1)
 
     # Save the trained model
-    torch.save(model.state_dict(), "multiclass_test.pth")
+    torch.save(model.state_dict(), model_output_name)
 
     # Visualize training and validation loss over epochs
     plt.plot(train_losses, label='Training Loss')
     plt.savefig('graphics/train_loss.svg', format='svg')
-    plt.show()
+    #plt.show()
     plt.plot(val_losses, label='Validation Loss')
     plt.savefig('graphics/val_loss.svg', format='svg')
-    plt.show()
+    #plt.show()
 
     # Visualize training and validation f1 curves. 
     plt.plot(train_f1_scores, label='f1 train')
     plt.savefig('graphics/train_f1.svg', format='svg')
-    plt.show()
+    #plt.show()
     plt.plot(val_f1_scores, label='f1 val')
     plt.savefig('graphics/val_f1.svg', format='svg')
-    plt.show()
+    #plt.show()
     
     #TODO: How does confusion matrix work for multilabel? Figure out and fix inconsistent input variable error!!
 
@@ -217,13 +180,13 @@ if __name__ == "__main__":
         plt.xlabel("Predicted")
         plt.ylabel("True")
         plt.savefig(f'graphics/conf_matrix_{i+1}.svg', format='svg')
-        plt.show()
+        #plt.show()
 
         sns.heatmap(normalized_conf_matrix[i], annot=True, fmt=".2f", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
         plt.xlabel("Predicted")
         plt.ylabel("True")
         plt.savefig(f'graphics/norm_conf_matrix_{i+1}.svg', format='svg')
-        plt.show()
+        #plt.show()
     
 
 
