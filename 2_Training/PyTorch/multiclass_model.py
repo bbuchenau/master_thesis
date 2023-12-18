@@ -1,4 +1,6 @@
 import os
+import csv
+import time
 import json
 import torch
 import torch.nn as nn
@@ -7,6 +9,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from sklearn.metrics import multilabel_confusion_matrix, precision_score, recall_score
 import matplotlib.pyplot as plt
+from varname import nameof
 import seaborn as sns
 import numpy as np
 import socket
@@ -14,6 +17,7 @@ import socket
 # Import classes from my other files.
 import data
 import model
+import visualization
 
 # Set working directory and load trainingConfig JSON file that stores parameters.
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,13 +35,15 @@ elif pc_name == "LAPTOP_UBUH5BJN":
 else:
     print("Wrong dataset path, check again.")
 
-# Define transformations for images in dataset.
+model_output_name = "multiclass_test.pth"
+
+# Set image transforms: Resizing and data augmentation.
 transform = transforms.Compose([
     transforms.Resize(list(config["transform_resize"])),
-    transforms.ToTensor(),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(degrees=config["rotation_degrees"]),
+    transforms.ToTensor()
 ])
-
-model_output_name = "multiclass_test.pth"
 
 # Create the dataset.
 dataset = data.MultiLabelImageDataset(root_dir=dataset_path, transform=transform)
@@ -51,6 +57,27 @@ train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size,
 def custom_collate(batch):
     images, labels = zip(*batch)
     return torch.stack(images), torch.stack(labels)
+
+# Function to save training results to a csv file.
+def results_to_csv(file_path, *lists):
+    # Transpose the lists to create columns.
+    columns = list(map(list, zip(*lists)))
+
+    with open(file_path, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+
+        # Write header row.
+        # TODO: Find correct way to use list variable names as string for header row. 
+        # Until that, look as lists passed to function below.
+        csv_writer.writerow(["epoch", "train/loss", "val/loss"])
+
+        # Write data rows.
+        for epoch, values in enumerate(columns, start=1):
+            rounded_values = [round(value, 5) for value in values]
+            csv_writer.writerow([epoch] + rounded_values)
+
+# Save starting time.
+start_time = time.time()
 
 # Workaround, as there were runtime issues.
 if __name__ == "__main__":
@@ -134,7 +161,7 @@ if __name__ == "__main__":
         print(f"Epoch [{epoch+1}/{num_epochs}], Validation Loss: {average_val_loss:.4f}")
         val_losses.append(average_val_loss)
 
-        # Update best predictions based on the highest predicted probability for each class
+        # Update best predictions based on the highest predicted probability for each class.
         if not best_predictions or val_loss < min(val_losses):
             best_predictions = current_best_predictions
 
@@ -144,26 +171,22 @@ if __name__ == "__main__":
         val_f1 = 2 * (val_precision * val_recall) / (val_precision + val_recall)
         val_f1_scores.append(val_f1)
 
+    # Print training duration.
+    print("Training runtime:", int(time.time() - start_time), "seconds")
+
     # Save the trained model
     torch.save(model.state_dict(), model_output_name)
 
-    # Visualize training and validation loss over epochs
-    plt.plot(train_losses, label='Training Loss')
-    plt.savefig('graphics/train_loss.svg', format='svg')
-    #plt.show()
-    plt.plot(val_losses, label='Validation Loss')
-    plt.savefig('graphics/val_loss.svg', format='svg')
-    #plt.show()
+    # Save results to csv file.
+    results_to_csv('results.csv', train_losses, val_losses)
 
-    # Visualize training and validation f1 curves. 
-    plt.plot(train_f1_scores, label='f1 train')
-    plt.savefig('graphics/train_f1.svg', format='svg')
-    #plt.show()
-    plt.plot(val_f1_scores, label='f1 val')
-    plt.savefig('graphics/val_f1.svg', format='svg')
-    #plt.show()
-    
-    #TODO: How does confusion matrix work for multilabel? Figure out and fix inconsistent input variable error!!
+    # Visualize training and validation loss over epochs.
+    visualization.visualize_losses(train_losses, "train_loss", "svg")
+    visualization.visualize_losses(val_losses, "val_loss", "svg")
+
+    # Visualize training and validation f1 score over epochs.
+    visualization.visualize_losses(train_f1_scores, "train_f1", "svg")
+    visualization.visualize_losses(val_f1_scores, "val_f1", "svg")
 
     # Create a confusion matrix based on the best predictions
     conf_matrix = multilabel_confusion_matrix(np.array(all_labels), np.array(best_predictions), labels=[0, 1, 2])
@@ -172,21 +195,28 @@ if __name__ == "__main__":
     # Normalize the confusion matrices
     normalized_conf_matrix = [conf_matrix[i] / conf_matrix[i].sum(axis=1, keepdims=True) for i in range(len(class_names))]
     
-
+    #TODO: Move to visualization script.
     # Display the multilabel confusion matrix using seaborn heatmap
-    plt.figure(figsize=(10, 8))
     for i in range(len(class_names)):
+        # Create a new figure for each heatmap plot
+        plt.figure(figsize=(10, 8))
+
+        # Plot the confusion matrix
         sns.heatmap(conf_matrix[i], annot=True, fmt="d", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
         plt.xlabel("Predicted")
         plt.ylabel("True")
-        plt.savefig(f'graphics/conf_matrix_{i+1}.svg', format='svg')
-        #plt.show()
+        plt.title(f'Class {class_names[i]}')
+        plt.savefig(f'graphics/conf_matrix_{i + 1}.svg', format='svg')
+        plt.close()
 
+        # Create a new figure for the normalized confusion matrix plot
+        plt.figure(figsize=(10, 8))
+
+        # Plot the normalized confusion matrix
         sns.heatmap(normalized_conf_matrix[i], annot=True, fmt=".2f", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
         plt.xlabel("Predicted")
         plt.ylabel("True")
-        plt.savefig(f'graphics/norm_conf_matrix_{i+1}.svg', format='svg')
-        #plt.show()
-    
-
+        plt.title(f'Class {class_names[i]}')
+        plt.savefig(f'graphics/norm_conf_matrix_{i + 1}.svg', format='svg')
+        plt.close()
 
