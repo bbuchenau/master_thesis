@@ -5,6 +5,11 @@
     "rotation_degrees" : 30,
     "batch_size" : 64,
     "learning_rate" : 0.001,
+    "dropout" : 0.5,
+    "dense_layer_nodes" : 512,
+    "unfreeze_layers" : ["layer4", "avgpool", "fc"],
+    "finetuning" : "True",
+    "model_output_name" : "multilabel",
     "data_path_BICC" : "D:/ben_masterthesis/1_OIDv4/OID/Dataset_nl/train/X_TEST",
     "data_path_laptop" : "C:/Users/Ben/MASTER/Thesis/social_media_examples/pytorch_dataset"
 }

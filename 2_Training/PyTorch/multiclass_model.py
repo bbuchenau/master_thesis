@@ -35,9 +35,9 @@ elif pc_name == "LAPTOP_UBUH5BJN":
 else:
     print("Wrong dataset path, check again.")
 
-model_output_name = "multiclass_test.pth"
+model_output_name = config["model_output_name"]
 
-# Set image transforms: Resizing and data augmentation.
+# Set transforms: data augmentation.
 transform = transforms.Compose([
     transforms.Resize(list(config["transform_resize"])),
     transforms.RandomHorizontalFlip(),
@@ -101,6 +101,7 @@ if __name__ == "__main__":
     val_losses = []
     train_f1_scores = []
     val_f1_scores = []
+    best_val_loss = float("inf")
     
     for epoch in range(num_epochs):
 
@@ -161,9 +162,18 @@ if __name__ == "__main__":
         print(f"Epoch [{epoch+1}/{num_epochs}], Validation Loss: {average_val_loss:.4f}")
         val_losses.append(average_val_loss)
 
+        # TODO: Check if this should be included in conditional below, and if correct matrix is calc!
         # Update best predictions based on the highest predicted probability for each class.
         if not best_predictions or val_loss < min(val_losses):
             best_predictions = current_best_predictions
+
+        # Update best predictions based on the lowest val/loss.
+        if average_val_loss < best_val_loss:
+            best_val_loss = average_val_loss
+            # Save the model at the best epoch.
+            torch.save(model.state_dict(), f"{model_output_name}_best.pth")
+            # Print for testing.
+            print("Model improved in epoch", epoch + 1)
 
         # Calculate validation f1 score
         val_precision = precision_score(epoch_val_labels, epoch_val_predictions, average='micro')
@@ -175,7 +185,7 @@ if __name__ == "__main__":
     print("Training runtime:", int(time.time() - start_time), "seconds")
 
     # Save the trained model
-    torch.save(model.state_dict(), model_output_name)
+    torch.save(model.state_dict(), f"{model_output_name}_last.pth")
 
     # Save results to csv file.
     results_to_csv('results.csv', train_losses, val_losses)
@@ -195,28 +205,8 @@ if __name__ == "__main__":
     # Normalize the confusion matrices
     normalized_conf_matrix = [conf_matrix[i] / conf_matrix[i].sum(axis=1, keepdims=True) for i in range(len(class_names))]
     
-    #TODO: Move to visualization script.
-    # Display the multilabel confusion matrix using seaborn heatmap
+    # Create the multilabel confusion matrix using seaborn heatmap.
     for i in range(len(class_names)):
-        # Create a new figure for each heatmap plot
-        plt.figure(figsize=(10, 8))
-
-        # Plot the confusion matrix
-        sns.heatmap(conf_matrix[i], annot=True, fmt="d", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
-        plt.xlabel("Predicted")
-        plt.ylabel("True")
-        plt.title(f'Class {class_names[i]}')
-        plt.savefig(f'graphics/conf_matrix_{i + 1}.svg', format='svg')
-        plt.close()
-
-        # Create a new figure for the normalized confusion matrix plot
-        plt.figure(figsize=(10, 8))
-
-        # Plot the normalized confusion matrix
-        sns.heatmap(normalized_conf_matrix[i], annot=True, fmt=".2f", cmap="Blues", xticklabels=["0", "1"], yticklabels=["0", "1"])
-        plt.xlabel("Predicted")
-        plt.ylabel("True")
-        plt.title(f'Class {class_names[i]}')
-        plt.savefig(f'graphics/norm_conf_matrix_{i + 1}.svg', format='svg')
-        plt.close()
+        visualization.visualize_conf_matrix(conf_matrix[i], class_names[i], "svg", "d", "abs")
+        visualization.visualize_conf_matrix(normalized_conf_matrix[i], class_names[i], "svg", ".2f", "norm")
 
